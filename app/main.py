@@ -12,7 +12,7 @@ from custom_pages.case_gl_balance import case_gl_balance
 
 # import pprint as pprint
 
-st.set_page_config(page_title="SCIA")
+st.set_page_config(page_title="Accouting")
 page_names_to_funcs = {
     "首页": intro,
     "对账": case_fee_recon,
