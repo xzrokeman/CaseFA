@@ -4,7 +4,7 @@ import pandas as pd
 from initDB import mySqlEngine, sqliteEngine
 
 
-# Case fee info from SCIA old website
+# Case fee info from old website
 def sync_case_fee_data():
     remote_frame = pd.read_sql(
         "select * from v_bank_records", mySqlEngine, dtype={"u_t": str}
