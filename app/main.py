@@ -14,11 +14,11 @@ from custom_pages.case_gl_balance import case_gl_balance
 
 st.set_page_config(page_title="Accouting")
 page_names_to_funcs = {
-    "首页": intro,
-    "对账": case_fee_recon,
-    "报酬": case_rem,
-    "退费": case_refund,
-    "总账余额": case_gl_balance,
+    "Index": intro,
+    "Reconciliation": case_fee_recon,
+    "Remuneration": case_rem,
+    "Refund": case_refund,
+    "GL balance": case_gl_balance,
 }
 with st.sidebar:
     st.title("Bank Reconciliaton & Case Info")
