@@ -32,7 +32,6 @@ def case_rem():
         rem_display["time_diff"] == rem_display["time_diff"].min()
     ]
 
-    # 如果你不想在结果中包含'time_diff'列，可以删除它
     rem_display = rem_display.drop("time_diff", axis=1)
 
     rem_display["case_code_m"] = rem_display["case_code"].apply(CaseCode)
@@ -53,14 +52,14 @@ def case_rem():
     )
 
     fee_type_mapping = {
-        "1": "报酬",
-        "2": "奖励",
-        "3": "扣减",
-        "4": "办案其它报酬",
-        "5": "出差补助",
-        "6": "专家报酬",
-        "7": "异地办案支出",
-        "8": "专家核阅",
+        "1": "case remuneration",
+        "2": "bonus",
+        "3": "deduction",
+        "4": "other remuneration",
+        "5": "travel expense",
+        "6": "expert fee",
+        "7": "travel expense premium",
+        "8": "inspection fee",
     }
 
     rem_display["typ"] = rem_display["typ"].map(fee_type_mapping)
@@ -75,21 +74,21 @@ def case_rem():
         use_container_width=True,
         height=600,
         column_config={
-            "case_code": st.column_config.TextColumn("案号", disabled=True),
-            "p_name": st.column_config.TextColumn("仲裁员姓名", disabled=True),
-            "typ": st.column_config.TextColumn("报酬类型", disabled=True),
+            "case_code": st.column_config.TextColumn("case code", disabled=True),
+            "p_name": st.column_config.TextColumn("expert name", disabled=True),
+            "typ": st.column_config.TextColumn("rem type", disabled=True),
             "should_rmb": st.column_config.NumberColumn(
-                "应发金额", disabled=True, format="%.2f"
+                "rem(before tax)", disabled=True, format="%.2f"
             ),
             "tax_rmb": st.column_config.NumberColumn(
-                "应发金额", format="%.2f", disabled=True
+                "tax", format="%.2f", disabled=True
             ),
             "extend_rmb": st.column_config.NumberColumn(
-                "应发金额", format="%.2f", disabled=True
+                "rem(after tax)", format="%.2f", disabled=True
             ),
-            "extend_t": st.column_config.DateColumn("会计确认应发日期", disabled=True),
-            "t_extend_t": st.column_config.DateColumn("出纳确认已付日期", disabled=True),
-            "case_code_m": st.column_config.TextColumn("调整案号"),
-            "case_code_number": st.column_config.TextColumn("EAS编码"),
+            "extend_t": st.column_config.DateColumn("accountant confirm date", disabled=True),
+            "t_extend_t": st.column_config.DateColumn("cashier confirm date", disabled=True),
+            "case_code_m": st.column_config.TextColumn("modified case code"),
+            "case_code_number": st.column_config.TextColumn("gl case number"),
         },
     )
