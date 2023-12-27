@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from initDB import mySqlEngine, sqliteEngine
 import datetime
-from modify_case_code import CaseCode
+from utils import CaseCode
 from .case_gl_balance import params, get_balance
 from decimal import Decimal
 
