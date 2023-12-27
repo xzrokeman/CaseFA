@@ -87,7 +87,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def CaseCode(string: str) -> str:  # 调整案号
+def CaseCode(string: str) -> str:
     def CasePrefix(string):
         if "medical" in string:
             return "yl"
