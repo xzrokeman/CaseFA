@@ -2,7 +2,7 @@ import datetime
 import streamlit as st
 import pandas as pd
 from initDB import mySqlEngine, sqliteEngine
-from modify_case_code import CaseCode
+from utils import CaseCode
 import numpy as np
 
 
