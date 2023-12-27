@@ -89,13 +89,13 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def CaseCode(string: str) -> str:  # 调整案号
     def CasePrefix(string):
-        if "医疗" in string:
+        if "medical" in string:
             return "yl"
-        elif "深仲涉外" in string:
+        elif "sforeign" in string:
             return "sw"
-        elif "深仲" in string:
+        elif "sz" in string:
             return "sz"
-        elif "深国仲" in string:
+        elif "international" in string:
             return "gz"
         else:
             return ""
