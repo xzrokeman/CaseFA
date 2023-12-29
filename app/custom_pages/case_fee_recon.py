@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 from initDB import sqliteEngine
-
+from utils import filter_dataframe
 
 def case_fee_recon():
     st.write("本地缓存收款记录")
 
-    @st.cache_data
+    #@st.cache_data
     def run_query(_engine):
         return pd.read_sql("select * from v_bank_records", _engine)
 
@@ -25,10 +25,13 @@ def case_fee_recon():
             "furinfo",
         ],
     ].copy()
-    st.data_editor(
-        df_n,
+    df_n['case_code'] = df_n['case_code'].fillna(df_n['bill_code'])
+    df_n.index = range(1, len(df_n) + 1)
+
+    st.dataframe(
+        filter_dataframe(df_n),
         hide_index=False,
-        num_rows="dynamic",
+        #num_rows="dynamic",
         use_container_width=True,
         height=600,
         column_config={
