@@ -6,6 +6,7 @@ from initDB import (
     eas_login_api, 
     case_code_data_api,
     )
+from utils import filter_dataframe
 
 params = json.dumps(
         {
@@ -57,7 +58,7 @@ def case_gl_balance():
 
     with st.container(border=False):
         st.dataframe(
-            balance_display,
+            filter_dataframe(balance_display),
             height=600,
             use_container_width=True,
             column_config={
@@ -65,5 +66,24 @@ def case_gl_balance():
                     "期末余额(本位币)",
                     format="%.2f",
                     ),
+                "公司编码": st.column_config.TextColumn(
+                    "单位编码"
+                    ),
+                "项目（案件案号）名称": st.column_config.TextColumn(
+                    "案号"
+                    ),
+                "项目（案件案号）编码": st.column_config.TextColumn(
+                    "案号编码"
+                    )
                 },
+            column_order=(
+                "公司编码",
+                "科目编码",
+                "项目（案件案号）名称",
+                "项目（案件案号）编码",
+                "客户名称",
+                "客户编码",
+                "期未余额(本位币)",
+                
             )
+        )
