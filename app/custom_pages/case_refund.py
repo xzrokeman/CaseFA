@@ -2,10 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from initDB import mySqlEngine, sqliteEngine
-import datetime
-from utils import CaseCode
+import datetime, swifter
 from .case_gl_balance import params, get_balance
-from decimal import Decimal
+from utils import filter_dataframe, CaseCode
 
 def case_refund():
     refund_bill = pd.read_sql("select * from refund_bill", mySqlEngine)
@@ -40,7 +39,7 @@ def case_refund():
         .drop("time_diff", axis=1)
     )
 
-    refund_display["case_code_m"] = refund_display["case_code"].apply(CaseCode)
+    refund_display["case_code_m"] = refund_display["case_code"].swifter.apply(CaseCode)
 
     case_code_map = pd.read_sql("select * from case_code_map", sqliteEngine)
 
@@ -53,7 +52,7 @@ def case_refund():
             return np.nan
 
     # modify case code
-    refund_display["case_code_number"] = refund_display["case_code_m"].apply(
+    refund_display["case_code_number"] = refund_display["case_code_m"].swifter.apply(
         find_case_code_number
     )
     refund_display["litigant_type"] = refund_display["litigant_type"].astype(str)
@@ -108,7 +107,7 @@ def case_refund():
     
 
     st.data_editor(
-        refund_display,
+        filter_dataframe(refund_display),
         height=800,
         use_container_width=True,
         column_config={
