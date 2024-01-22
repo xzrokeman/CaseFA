@@ -1,10 +1,9 @@
 import datetime
-import swifter
 import streamlit as st
 import pandas as pd
-from initDB import mySqlEngine, sqliteEngine
-import numpy as np
-from utils import filter_dataframe, CaseCode
+from connectivty.db_conn import mySqlEngine, sqliteEngine
+from utils import filter_dataframe, transform_case_code
+
 
 def case_rem():
     rem_data = pd.read_sql("select * from tb_extends", mySqlEngine)
@@ -20,54 +19,38 @@ def case_rem():
             "extend_t",
             "t_extend_t",
         ],
-    ]#.copy()
-    
-    
+    ]  # .copy()
+
     now = datetime.datetime.now()
 
-    # 将“t_extend_t”列与当前时间的差值计算出来
     rem_display["time_diff"] = abs(rem_display["t_extend_t"] - now)
 
-    """# 筛选出差值最小的行
     rem_display = rem_display.loc[
         rem_display["time_diff"] == rem_display["time_diff"].min()
     ]
-    """
-    st.markdown("默认查询最近`30`天发放的报酬情况，完整报酬数据请查询老华南办案系统")
+    
+    st.markdown("Query remunertaion paid in most recent `30` days.")
     rem_display = rem_display.loc[
         rem_display["time_diff"] <= datetime.timedelta(days=30)
     ]
 
-    # 如果你不想在结果中包含'time_diff'列，可以删除它
     rem_display = rem_display.drop("time_diff", axis=1)
-    
-    
-    rem_display["case_code_m"] = rem_display["case_code"].swifter.apply(CaseCode)
+
+    rem_display = transform_case_code(rem_display)
 
     case_code_map = pd.read_sql("select * from case_code_map", sqliteEngine)
-
-    def find_case_code_number(case_code_m):
-        try:
-            return case_code_map.loc[
-                case_code_map["case_code_m"] == case_code_m, "case_code_number"
-            ].values[0]
-        except IndexError:
-            return np.nan
-
-    # 应用find_case_code_number函数到df的case_code_m列，生成新的列case_code_number
-    rem_display["case_code_number"] = rem_display["case_code_m"].swifter.apply(
-        find_case_code_number
-    )
+    
+    rem_display = pd.merge(rem_display, case_code_map, on='case_code_m', how='left')
 
     fee_type_mapping = {
-        "1": "报酬",
-        "2": "奖励",
-        "3": "扣减",
-        "4": "办案其它报酬",
-        "5": "出差补助",
-        "6": "专家报酬",
-        "7": "异地办案支出",
-        "8": "专家核阅",
+        "1": "remuneration",
+        "2": "bonus",
+        "3": "deduction",
+        "4": "other_rem",
+        "5": "traffic",
+        "6": "expert_rem",
+        "7": "non_local_traffic",
+        "8": "award_review_rem",
     }
 
     rem_display["typ"] = rem_display["typ"].map(fee_type_mapping)
@@ -82,21 +65,21 @@ def case_rem():
         use_container_width=True,
         height=600,
         column_config={
-            "case_code": st.column_config.TextColumn("案号", disabled=True),
-            "p_name": st.column_config.TextColumn("仲裁员姓名", disabled=True),
-            "typ": st.column_config.TextColumn("报酬类型", disabled=True),
+            "case_code": st.column_config.TextColumn("CaseCode", disabled=True),
+            "p_name": st.column_config.TextColumn("ArbitratorName", disabled=True),
+            "typ": st.column_config.TextColumn("RemType", disabled=True),
             "should_rmb": st.column_config.NumberColumn(
-                "应发金额", disabled=True, format="%.2f"
+                "AmountDue", disabled=True, format="%.2f"
             ),
             "tax_rmb": st.column_config.NumberColumn(
-                "代扣税金额", format="%.2f", disabled=True
+                "IncomeTax(personal)", format="%.2f", disabled=True
             ),
             "extend_rmb": st.column_config.NumberColumn(
-                "实发金额", format="%.2f", disabled=True
+                "AmountPayable", format="%.2f", disabled=True
             ),
-            "extend_t": st.column_config.DateColumn("会计确认应发日期", disabled=True),
-            "t_extend_t": st.column_config.DateColumn("出纳确认已付日期", disabled=True),
-            "case_code_m": st.column_config.TextColumn("调整案号"),
-            "case_code_number": st.column_config.TextColumn("EAS编码"),
+            "extend_t": st.column_config.DateColumn("AccountantConfirmDate", disabled=True),
+            "t_extend_t": st.column_config.DateColumn("CashierConfirmDate", disabled=True),
+            "case_code_m": st.column_config.TextColumn(""),
+            "case_code_number": st.column_config.TextColumn("EAS_code"),
         },
     )
