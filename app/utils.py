@@ -1,5 +1,6 @@
 import re, datetime
 import pandas as pd
+import polars as pl
 import streamlit as st
 from pandas.api.types import (
     is_categorical_dtype,
@@ -117,3 +118,28 @@ def CaseCode(string: str) -> str:
             return number_str[0:9]
 
     return CasePrefix(string) + CaseNum(string)
+
+def transform_case_code(df: pd.DataFrame) -> pd.DataFrame:
+    return pl.from_pandas(df).with_columns(
+    pl.col('case_code').str.extract_all(r"(\d*)").list.join("").alias('a')
+    ).with_columns(
+    pl.col('a').str.slice(0,4).alias("year"),
+    pl.col('a').str.slice(4,5).alias("code"),
+    ).with_columns(
+        prefix = pl.lit(None)
+    ).with_columns(
+        pl.col("code").str.zfill(4),
+        pl.when(pl.col('case_code').str.contains("medical"))
+        .then(pl.col('prefix').fill_null("yl"))
+        .when(pl.col('case_code').str.contains("sforeign"))
+        .then(pl.col('prefix').fill_null("sw"))
+        .when(pl.col('case_code').str.contains("sz"))
+        .then(pl.col('prefix').fill_null('sz'))
+        .when(pl.col('case_code').str.contains("international"))
+        .then(pl.col('prefix').fill_null('gz'))
+        .otherwise(pl.col('prefix').fill_null(""))
+    ).with_columns(
+    pl.when(pl.col("year").cast(pl.Int32)>2099)
+    .then(pl.col('case_code'))
+    .otherwise(pl.concat_str([pl.col("prefix"), pl.col("year"), pl.col("code")])).alias('case_code_m'),
+    ).drop(['year','code','a','prefix']).to_pandas().astype(str)
