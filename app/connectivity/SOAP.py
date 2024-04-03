@@ -62,7 +62,13 @@ transport = Transport(
 eas_login_api = Client(WSDL_URL.LOGIN.value, transport=transport, settings=settings)
 
 login_info = conn_info["EAS"]
-
+# I do it in a sync way for 2 reasons
+# First, lib zeep does not support async actually. Even if we use the AsyncClient
+# object, the WSDL file is loaded synchoronously according to zeep documentation.
+# Second, projects using SOAP does not support concurrency well. Like Kingdee EAS
+# here, its backends was actually a tomcat server. I recon it can handle 150 user
+# request concurrently at most. While in production we allocate little resource for
+# EAS, there's very limited value rewrite the script in async manner.
 customer_data_api = Client(
     WSDL_URL.CUSTOMER_OP.value, transport=transport, settings=settings
 )
