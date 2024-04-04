@@ -76,3 +76,10 @@ customer_data_api = Client(
 case_code_data_api = Client(
     WSDL_URL.PROJECT_OP.value, transport=transport, settings=settings
 )
+
+def mlogin(login_info):
+    try:
+        eas_login_api.service.login(**login_info)
+    except TypeError:
+        del login_info['isEncodePwd']
+        eas_login_api.service.login(**login_info)
