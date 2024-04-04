@@ -9,11 +9,11 @@ from initDB import (
     customer_data_api,
     case_code_data_api,
     login_info,
-    eas_login_api,
+    mlogin,
     sqliteEngine,
 )
 
-result_login = eas_login_api.service.login(**login_info)
+mlogin(login_info)
 
 result_customer_data = customer_data_api.service.exportCustomerData(1, 30000)
 
