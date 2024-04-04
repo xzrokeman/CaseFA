@@ -14,7 +14,7 @@ from initDB import (
 )
 
 mlogin(login_info)
-
+# exportCustomerData(start: int, rows: int)
 result_customer_data = customer_data_api.service.exportCustomerData(1, 30000)
 
 customer_list = []
