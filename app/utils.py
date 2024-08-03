@@ -1,7 +1,8 @@
-import re, datetime
+import re
+import datetime
 import pandas as pd
-import polars as pl
 import streamlit as st
+import polars as pl
 from pandas.api.types import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -9,7 +10,6 @@ from pandas.api.types import (
     is_object_dtype,
 )
 from functools import reduce
-from typing import Tuple
 
 # this filter function comes from https://github.com/tylerjrichards/st-filter-dataframe/blob/main/streamlit_app.py
 
@@ -79,7 +79,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 if len(user_date_input) == 2:
                     user_date_input = tuple(map(pd.to_datetime, user_date_input))
                     start_date, end_date = user_date_input
-                    df = df.loc[df[column].between(start_date, end_date+datetime.timedelta(days=1))]
+                    df = df.loc[df[column].between(start_date, end_date)]
             else:
                 user_text_input = right.text_input(
                     f"Substring or regex in {column}",
@@ -89,15 +89,16 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def CaseCode(string: str) -> str:
     def CasePrefix(string):
-        if "medical" in string:
+        if "医疗" in string:
             return "yl"
-        elif "sforeign" in string:
+        elif "深仲涉外" in string:
             return "sw"
-        elif "sz" in string:
+        elif "深仲" in string:
             return "sz"
-        elif "international" in string:
+        elif "深国仲" in string:
             return "gz"
         else:
             return ""
@@ -120,12 +121,14 @@ def CaseCode(string: str) -> str:
 
     return CasePrefix(string) + CaseNum(string)
 
+
 def transform_case_code(df: pd.DataFrame) -> pd.DataFrame:
     df1 = pl.from_pandas(df).lazy().with_columns(
     pl.col('case_code').str.extract_all(r"(\d*)").list.join("").alias('a')
     ).with_columns(
     pl.col('a').str.slice(0,4).alias("year"),
     pl.col('a').str.slice(4,5).alias("code"),
+    pl.col('case_code').alias('origin')
     ).with_columns(
         prefix = pl.lit(None)
     ).with_columns(
@@ -140,72 +143,23 @@ def transform_case_code(df: pd.DataFrame) -> pd.DataFrame:
         .then(pl.col('prefix').fill_null('gz'))
         .otherwise(pl.col('prefix').fill_null(""))
     ).with_columns(
-    pl.when(pl.col("year").cast(pl.Int32)>2099)
-    .then(pl.col('case_code'))
+# polars.Expr.cast(polars <= 0.20.27) is very similar to TRY_CAST in SQL, if you pass in strict=False, it 
+# will return null for those that cannot be transformed, see example below:
+#>>> import polars as pl
+#>>> df = pl.DataFrame({"a": [1,2,3], "b": ["4", "5", "c"]})
+#>>> df.with_columns(pl.col("b").cast(pl.Int32, strict=False))
+#shape: (3, 2)
+#┌─────┬──────┐
+#│ a   ┆ b    │
+#│ --- ┆ ---  │
+#│ i64 ┆ i32  │
+#╞═════╪══════╡
+#│ 1   ┆ 4    │
+#│ 2   ┆ 5    │
+#│ 3   ┆ null │
+#└─────┴──────┘
+    pl.when(pl.col("year").cast(pl.Int32,strict=False)>2099)
+    .then(pl.col('case_code').fill_null(pl.col('origin')))
     .otherwise(pl.concat_str([pl.col("prefix"), pl.col("year"), pl.col("code")])).alias('case_code_m'),
-    ).drop(['year','code','a','prefix']).collect().to_pandas().astype(str)
+    ).drop(['year','code','a','prefix','origin']).collect().to_pandas().astype(str)
     return df1
-
-def consume(
-        stock: pl.Series, 
-        utilization: pl.Series
-        ) -> pl.Series:
-    used = []
-    # Allow OVERDRAFT by default! We will check insufficient stock later
-    if stock.sum() < 0 or utilization.sum() < 0:
-        used.append(utilization.cast(pl.Float64).round(2).sum())
-    else:
-        n = 0
-        consumption = utilization.sum()
-        while n <= stock.shape[0]:
-            if stock.sum() > utilization.sum():
-                if consumption - stock[n] > 0:
-                    used.append(stock[n])
-                    consumption -= stock[n]
-                else:
-                    used.append(consumption)
-                    if n < stock.shape[0] - 1:
-                        used = used + [None] * (stock.shape[0]-n-1)
-                    break
-                n += 1
-            # Allow OVERDRAFT by default! We will check insufficient stock later
-            else:
-                if stock.len() <= 1:
-                    used.append(consumption)
-                    break
-                else:
-                    x = stock.to_list()[0:-1]
-                    y = utilization.sum() - sum(x)
-                    used = x + [y]
-                    break
-    return pl.Series(name="used", values=used).cast(pl.Float64)
-
-# p1 = pl.Series(name="p1", values=[100, 2000,305.0]).cast(pl.Float64)
-# p2 = pl.Series(name="p2", values=[500.0]).round(2)
-# consume(p1,p2).sum()
-# 500.0
-
-def batch_proc(
-        gl_bal: pl.DataFrame, 
-        batch: pl.DataFrame) -> Tuple[pl.DataFrame,pl.DataFrame]:
-    unique_series: pl.Series = batch.select(pl.col("项目名称")).to_series().unique()
-    used:list = []
-    for code in unique_series:
-        pool: pl.DataFrame = gl_bal.filter(pl.col("项目名称") == code).clone()
-        req: pl.DataFrame = batch.filter(pl.col("项目名称") == code).clone()
-        use: pl.Series = consume(
-            pool.select(pl.col("金额")).to_series(),
-            req.select(pl.col("金额")).to_series()
-        )
-        used.append(pool.with_columns(use))
-    usedf: pl.DataFrame = pl.concat(used, how="vertical")
-    check_df: pl.DataFrame = batch.group_by("项目名称").agg(pl.sum("金额").alias("offset")).join(
-        gl_bal.group_by("项目名称").agg(pl.sum("金额").alias("bal")),
-        on="项目名称",
-        how="left"
-        ).with_columns(
-            (pl.col("bal")-pl.col("offset")).round(2).alias("diff")
-            ).filter(
-                pl.col("diff") < 0
-            )
-    return usedf.drop_nulls(), check_df
