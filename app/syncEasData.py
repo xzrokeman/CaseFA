@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from zeep.xsd import *
-from zeep.helpers import serialize_object
 import base64, gzip
 import json, xmltodict
 import pandas as pd
