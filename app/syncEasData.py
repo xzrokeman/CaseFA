@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from zeep.xsd import *
 import base64, gzip
 import json, xmltodict
 import pandas as pd
